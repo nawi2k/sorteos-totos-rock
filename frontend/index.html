@@ -5,16 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sorteos - Totos Rock</title>
   
-  <!-- Ícono para la pestaña del navegador (Favicon) -->
   <link rel="icon" type="image/png" href="assets/logo-totos.png">
-  
   <link rel="stylesheet" href="styles.css">
-  <!-- Librería externa para el efecto de confeti -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 </head>
 <body>
 
-  <!-- Fondo rockero con textura y guitarras -->
   <div class="rock-bg"></div>
 
   <header class="header">
@@ -26,17 +22,32 @@
   </header>
 
   <main class="container">
-    <!-- Tarjeta de Entrada -->
     <section class="card glow-card">
-      <label for="postUrl" class="input-label">Pegá el enlace de la publicación o reel:</label>
-      <input type="text" id="postUrl" placeholder="https://www.instagram.com/p/...">
-      
-      <button id="btnCargar" onclick="cargarParticipantes()" class="btn-rock">
-        🎸 CARGAR PARTICIPANTES
-      </button>
+      <div class="tab-buttons">
+        <button class="tab-btn active" onclick="cambiarTab('link')">🔗 Por Enlace</button>
+        <button class="tab-btn" onclick="cambiarTab('manual')">📝 Carga Manual</button>
+      </div>
+
+      <!-- Tab 1: Enlace -->
+      <div id="tabLink" class="tab-content">
+        <label for="postUrl" class="input-label">Pegá el enlace de la publicación o reel:</label>
+        <input type="text" id="postUrl" placeholder="https://www.instagram.com/p/...">
+        <button id="btnCargar" onclick="cargarParticipantes()" class="btn-rock">
+          🎸 CARGAR PARTICIPANTES
+        </button>
+      </div>
+
+      <!-- Tab 2: Manual -->
+      <div id="tabManual" class="tab-content hidden">
+        <label for="textoManual" class="input-label">Pegá la lista de usuarios o comentarios:</label>
+        <textarea id="textoManual" rows="6" placeholder="Pegá acá los comentarios o nombres de usuario (ej: @juan, @maria)..."></textarea>
+        <button onclick="procesarManual()" class="btn-rock">
+          🔥 PROCESAR LISTA
+        </button>
+      </div>
     </section>
 
-    <!-- Secciones de Resultados -->
+    <!-- Resultados -->
     <section id="resultadoSection" class="card glow-card hidden">
       <div class="counter-box">
         <span class="counter-label">Participantes Únicos</span>
@@ -47,7 +58,6 @@
         🔥 ¡REALIZAR SORTEO! 🔥
       </button>
 
-      <!-- Pantalla de Ruleta y Ganador -->
       <div id="ruletaBox" class="ruleta-box hidden">
         <div id="ruletaNombre" class="ruleta-nombre">@cargando...</div>
       </div>
