@@ -6,7 +6,6 @@ import re
 
 app = FastAPI(title="API Sorteos Totos Rock")
 
-# Permitir solicitudes desde el frontend en Vercel
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -14,7 +13,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# API Key de RapidAPI
 RAPIDAPI_KEY = "ae9598b9c1msh1f0b6e5de81ab67p119a6bjsn2e84c4d02364"
 
 class SorteoRequest(BaseModel):
@@ -25,7 +23,8 @@ def obtener_participantes(data: SorteoRequest):
     try:
         url = data.post_url.strip()
         
-        # Extraer el shortcode o ID de la publicación (soporta /p/, /reel/, /tv/)
+        # Extraer el shortcode limpio borrando todo lo que haya antes y después
+        # Ejemplo: https://www.instagram.com/p/DeXqzynCesU/?obrf=... -> DeXqzynCesU
         match = re.search(r'/(?:p|reel|tv)/([^/?#&]+)', url)
         if not match:
             raise HTTPException(
@@ -35,7 +34,6 @@ def obtener_participantes(data: SorteoRequest):
         
         shortcode = match.group(1)
 
-        # Usar la API de RapidAPI que saltea el inicio de sesión
         rapid_url = "https://instagram-api-fast-reliable-data-scraper.p.rapidapi.com/post_comments"
         
         headers = {
@@ -43,30 +41,35 @@ def obtener_participantes(data: SorteoRequest):
             "x-rapidapi-host": "instagram-api-fast-reliable-data-scraper.p.rapidapi.com"
         }
         
-        params = {
-            "code_or_id_or_url": shortcode
-        }
+        params = {"code_or_id_or_url": shortcode}
 
         response = requests.get(rapid_url, headers=headers, params=params, timeout=20)
         
         if response.status_code != 200:
+            # Si RapidAPI devuelve error, mostramos qué respuesta dio exactamente
+            msg_error = response.text
+            try:
+                err_json = response.json()
+                msg_error = err_json.get("message") or err_json.get("detail") or response.text
+            except:
+                pass
             raise HTTPException(
                 status_code=400, 
-                detail="No se pudo consultar la publicación. Verifica que la cuenta sea pública."
+                detail=f"Error en RapidAPI ({response.status_code}): {msg_error}"
             )
 
         data_json = response.json()
         
-        # Extraer comentarios y usuarios únicos
+        # Obtener lista de comentarios
         comments_list = data_json.get("comments", []) or data_json.get("data", [])
 
         usuarios_unicos = set()
         for c in comments_list:
-            # Obtener usuario según la estructura de la API
-            user_info = c.get("user", {}) if isinstance(c, dict) else {}
-            username = user_info.get("username") or c.get("owner", {}).get("username")
-            if username:
-                usuarios_unicos.add(username.lower())
+            if isinstance(c, dict):
+                user_info = c.get("user", {})
+                username = user_info.get("username") or c.get("owner", {}).get("username")
+                if username:
+                    usuarios_unicos.add(username.lower())
 
         if not usuarios_unicos:
             raise HTTPException(
@@ -80,6 +83,8 @@ def obtener_participantes(data: SorteoRequest):
             "participantes": sorted(list(usuarios_unicos))
         }
 
+    except HTTPException as he:
+        raise he
     except Exception as e:
         raise HTTPException(
             status_code=400, 
