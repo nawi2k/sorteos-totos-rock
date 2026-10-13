@@ -24,7 +24,6 @@ def obtener_participantes(data: SorteoRequest):
         url = data.post_url.strip()
         
         # Extraer el shortcode limpio borrando todo lo que haya antes y después
-        # Ejemplo: https://www.instagram.com/p/DeXqzynCesU/?obrf=... -> DeXqzynCesU
         match = re.search(r'/(?:p|reel|tv)/([^/?#&]+)', url)
         if not match:
             raise HTTPException(
@@ -34,7 +33,8 @@ def obtener_participantes(data: SorteoRequest):
         
         shortcode = match.group(1)
 
-        rapid_url = "https://instagram-api-fast-reliable-data-scraper.p.rapidapi.com/post_comments"
+        # Endpoint correcto según la API de RapidAPI
+        rapid_url = "https://instagram-api-fast-reliable-data-scraper.p.rapidapi.com/comments"
         
         headers = {
             "x-rapidapi-key": RAPIDAPI_KEY,
@@ -46,7 +46,6 @@ def obtener_participantes(data: SorteoRequest):
         response = requests.get(rapid_url, headers=headers, params=params, timeout=20)
         
         if response.status_code != 200:
-            # Si RapidAPI devuelve error, mostramos qué respuesta dio exactamente
             msg_error = response.text
             try:
                 err_json = response.json()
