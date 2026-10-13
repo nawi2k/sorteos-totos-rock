@@ -42,22 +42,21 @@ def obtener_participantes(data: SorteoRequest):
             "x-rapidapi-host": "instagram-api-fast-reliable-data-scraper.p.rapidapi.com"
         }
 
-        # Estructura: dict con clave de usuario y valor su foto de perfil
         usuarios_dict = {} 
         min_id = None
-        max_paginas = 25  # Limite para evitar bucles infinitos (hasta ~500 comentarios)
+        max_intentos = 30 # Hasta ~1500 comentarios
 
-        for _ in range(max_paginas):
-            params = {"id": media_id}
+        for _ in range(max_intentos):
+            params = {"id": media_id, "count": "50"}
             if min_id:
                 params["min_id"] = min_id
 
-            response = requests.get(rapid_url, headers=headers, params=params, timeout=15)
+            response = requests.get(rapid_url, headers=headers, params=params, timeout=20)
             if response.status_code != 200:
                 break
 
             data_json = response.json()
-            comments_list = data_json.get("comments", []) or []
+            comments_list = data_json.get("comments", []) or data_json.get("data", []) or []
 
             if not comments_list:
                 break
@@ -69,19 +68,20 @@ def obtener_participantes(data: SorteoRequest):
                     pic_url = user_info.get("profile_pic_url") or c.get("owner", {}).get("profile_pic_url") or ""
 
                     if username:
-                        u_clean = username.lower()
+                        u_clean = username.lower().strip()
                         if u_clean not in usuarios_dict:
                             usuarios_dict[u_clean] = pic_url
 
-            # Actualizar el cursor para la siguiente página
-            min_id = data_json.get("next_min_id") or data_json.get("has_more_headload_comments")
-            if not min_id or not data_json.get("has_more_headload_comments", True):
+            # Obtener el puntero para la siguiente página
+            min_id = data_json.get("next_min_id") or data_json.get("min_id")
+            has_more = data_json.get("has_more_headload_comments") or data_json.get("has_more_comments")
+            
+            if not min_id or has_more is False:
                 break
 
         if not usuarios_dict:
-            raise HTTPException(status_code=400, detail="No se encontraron comentarios.")
+            raise HTTPException(status_code=400, detail="No se encontraron comentarios públicos.")
 
-        # Armar lista estructurada para el frontend
         participantes_lista = [
             {"username": u, "profile_pic": pic} 
             for u, pic in sorted(usuarios_dict.items())
@@ -94,4 +94,4 @@ def obtener_participantes(data: SorteoRequest):
         }
 
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Error: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Error al procesar: {str(e)}")
