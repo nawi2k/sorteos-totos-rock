@@ -1,24 +1,18 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-import instaloader
+import requests
+from bs4 import BeautifulSoup
 import re
 
 app = FastAPI(title="API Sorteos Totos Rock")
 
-# Permitir solicitudes CORS desde cualquier origen (Vercel, Localhost, etc.)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Inicializar Instaloader con un User-Agent personalizado para evitar bloqueos
-L = instaloader.Instaloader()
-L.context._session.headers.update({
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-})
 
 class SorteoRequest(BaseModel):
     post_url: str
@@ -28,32 +22,53 @@ def obtener_participantes(data: SorteoRequest):
     try:
         url = data.post_url.strip()
         
-        # Expresión regular para extraer solo el código único del post/reel (ej: DeXqzynCesU)
-        # Ignora cualquier parámetro como ?obrf=... o &igsh=...
+        # Extraer el shortcode (código único de la publicación)
         match = re.search(r'/(?:p|reel|tv)/([^/?#&]+)', url)
-        
         if not match:
             raise HTTPException(
                 status_code=400, 
-                detail="El enlace ingresado no tiene un formato válido de publicación o reel de Instagram."
+                detail="El enlace no tiene un formato válido de Instagram."
             )
         
         shortcode = match.group(1)
 
-        # Descargar la publicación mediante el shortcode
-        post = instaloader.Post.from_shortcode(L.context, shortcode)
+        # Consultar la versión Embed pública de Instagram
+        embed_url = f"https://www.instagram.com/p/{shortcode}/embed/captioned/"
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        }
         
-        # Usamos un Set en Python para garantizar 1 solo intento por usuario (elimina duplicados)
+        response = requests.get(embed_url, headers=headers, timeout=10)
+        
+        if response.status_code != 200:
+            raise HTTPException(
+                status_code=400, 
+                detail="No se pudo acceder a la publicación. Asegurate de que la cuenta sea pública."
+            )
+
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
         usuarios_unicos = set()
-        
-        for comment in post.get_comments():
-            if comment.owner and comment.owner.username:
-                usuarios_unicos.add(comment.owner.username.lower())
+
+        # Extraer nombres de usuario de las etiquetas de comentarios en el Embed
+        for a_tag in soup.find_all('a', class_='CaptionUsername'):
+            username = a_tag.get_text(strip=True).lower()
+            if username:
+                usuarios_unicos.add(username)
+
+        # Búsqueda secundaria por patrón de usuarios de Instagram
+        for a_tag in soup.find_all('a'):
+            href = a_tag.get('href', '')
+            match_user = re.search(r'instagram\.com/([^/?#&]+)', href)
+            if match_user:
+                user = match_user.group(1).lower()
+                if user not in ['p', 'explore', 'reels', 'stories']:
+                    usuarios_unicos.add(user)
 
         if not usuarios_unicos:
             raise HTTPException(
                 status_code=400, 
-                detail="No se encontraron comentarios en esta publicación."
+                detail="No se detectaron usuarios o comentarios públicos en esta publicación."
             )
 
         return {
