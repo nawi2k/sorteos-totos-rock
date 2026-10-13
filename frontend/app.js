@@ -10,11 +10,11 @@ async function cargarParticipantes() {
 
   try {
     // Reemplazar URL con la del servidor desplegado
-    const response = await fetch('http://localhost:8000/api/obtener-participantes', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ post_url: url })
-    });
+    const response = await fetch('https://sorteos-totos-rock.onrender.com/api/obtener-participantes', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ post_url: url })
+});
 
     const data = await response.json();
 
