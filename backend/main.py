@@ -42,43 +42,49 @@ def obtener_participantes(data: SorteoRequest):
             "x-rapidapi-host": "instagram-api-fast-reliable-data-scraper.p.rapidapi.com"
         }
 
-        usuarios_dict = {} 
-        min_id = None
-        max_paginas = 40  # Lee hasta 2000 comentarios
+        usuarios_dict = {}
+        pagination_token = None
+        max_paginas = 30  # Capacidad para miles de comentarios
 
         for _ in range(max_paginas):
             params = {"id": media_id}
-            if min_id:
-                params["min_id"] = min_id
+            if pagination_token:
+                params["pagination_token"] = pagination_token
 
             response = requests.get(rapid_url, headers=headers, params=params, timeout=15)
             if response.status_code != 200:
                 break
 
             data_json = response.json()
-            comments_list = data_json.get("comments", []) or []
-
-            if not comments_list:
+            
+            # Buscar lista de comentarios en las distintas estructuras posibles del JSON
+            comments_list = data_json.get("comments") or data_json.get("data") or []
+            if not isinstance(comments_list, list) or not comments_list:
                 break
 
             for c in comments_list:
                 if isinstance(c, dict):
-                    user_info = c.get("user", {})
-                    username = user_info.get("username") or c.get("owner", {}).get("username")
-                    pic_url = user_info.get("profile_pic_url") or c.get("owner", {}).get("profile_pic_url") or ""
+                    user_info = c.get("user") or c.get("owner") or {}
+                    username = user_info.get("username")
+                    pic_url = user_info.get("profile_pic_url") or ""
 
                     if username:
                         u_clean = username.lower().strip()
                         if u_clean not in usuarios_dict:
                             usuarios_dict[u_clean] = pic_url
 
-            # Obtener el puntero para la siguiente página
-            min_id = data_json.get("next_min_id") or data_json.get("min_id")
-            if not min_id:
+            # Obtener el cursor de paginación
+            pagination_token = (
+                data_json.get("pagination_token") or 
+                data_json.get("next_min_id") or 
+                data_json.get("min_id")
+            )
+            
+            if not pagination_token:
                 break
 
         if not usuarios_dict:
-            raise HTTPException(status_code=400, detail="No se encontraron comentarios.")
+            raise HTTPException(status_code=400, detail="No se encontraron comentarios en la publicación.")
 
         participantes_lista = [
             {"username": u, "profile_pic": pic} 
