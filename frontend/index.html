@@ -5,28 +5,53 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sorteos - Totos Rock</title>
   <link rel="stylesheet" href="styles.css">
+  <!-- Librería externa para el efecto de confeti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 </head>
 <body>
 
+  <!-- Fondo rockero con textura y guitarras -->
+  <div class="rock-bg"></div>
+
   <header class="header">
-    <img src="assets/logo-totos.png" alt="Totos Rock Logo" class="logo">
-    <h1>Totos Rock - Drugstore</h1>
-    <p class="subtitle">Creador de Sorteos para Instagram</p>
+    <div class="logo-container">
+      <img src="assets/logo-totos.png" alt="Totos Rock Logo" class="logo">
+    </div>
+    <h1>TOTOS ROCK</h1>
+    <p class="subtitle">Sorteos Oficiales de Instagram</p>
   </header>
 
   <main class="container">
-    <section class="card">
-      <label for="postUrl">Pegá el enlace de la publicación pública:</label>
+    <!-- Tarjeta de Entrada -->
+    <section class="card glow-card">
+      <label for="postUrl" class="input-label">Pegá el enlace de la publicación o reel:</label>
       <input type="text" id="postUrl" placeholder="https://www.instagram.com/p/...">
-      <button id="btnCargar" onclick="cargarParticipantes()">Cargar Participantes</button>
+      
+      <button id="btnCargar" onclick="cargarParticipantes()" class="btn-rock">
+        🎸 CARGAR PARTICIPANTES
+      </button>
     </section>
 
-    <section id="resultadoSection" class="card hidden">
-      <h2>Participantes Únicos: <span id="totalCount">0</span></h2>
-      <button id="btnSortear" class="btn-primary" onclick="realizarSorteo()">¡REALIZAR SORTEO!</button>
+    <!-- Secciones de Resultados -->
+    <section id="resultadoSection" class="card glow-card hidden">
+      <div class="counter-box">
+        <span class="counter-label">Participantes Únicos</span>
+        <span id="totalCount" class="counter-number">0</span>
+      </div>
+
+      <button id="btnSortear" class="btn-rock btn-gold" onclick="realizarSorteo()">
+        🔥 ¡REALIZAR SORTEO! 🔥
+      </button>
+
+      <!-- Pantalla de Ruleta y Ganador -->
+      <div id="ruletaBox" class="ruleta-box hidden">
+        <div id="ruletaNombre" class="ruleta-nombre">@cargando...</div>
+      </div>
+
       <div id="ganadorBox" class="ganador-box hidden">
-        <h3>🎉 ¡El ganador es! 🎉</h3>
-        <p id="nombreGanador" class="ganador-nombre"></p>
+        <div class="ganador-header">🎉 ¡GANADOR/A! 🎉</div>
+        <div id="nombreGanador" class="ganador-nombre">@usuario</div>
+        <p class="ganador-footer">Totos Rock Drugstore 🤘</p>
       </div>
     </section>
   </main>
