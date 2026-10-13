@@ -42,35 +42,25 @@
     </section>
   </main>
 
-  <!-- CUADRO FLOTANTE / POP-UP DEL SORTEO -->
+  <!-- CUADRADITO FLOTANTE (MODAL DE SORTEO) -->
   <div id="modalSorteo" class="modal-overlay hidden">
-    <div class="modal-box glow-card">
-      <button class="modal-close" onclick="cerrarModalSorteo()">✕</button>
-      
-      <div class="modal-header">
-        <img src="assets/logo-totos.png" class="modal-logo" alt="Totos">
-        <h2>TOTOS ROCK</h2>
-      </div>
+    <div class="modal-card card glow-card">
+      <button class="modal-close-btn" onclick="cerrarModalSorteo()">✕</button>
 
-      <!-- Estado Girando -->
-      <div id="ruletaBox" class="ruleta-box">
-        <p class="ruleta-texto">SORTEANDO...</p>
+      <!-- Ruleta Girando -->
+      <div id="ruletaBox" class="ruleta-box hidden">
         <div id="ruletaNombre" class="ruleta-nombre">@cargando...</div>
       </div>
 
-      <!-- Estado Ganador -->
+      <!-- Cuadro Ganador -->
       <div id="ganadorBox" class="ganador-box hidden">
         <div class="ganador-header">🎉 ¡GANADOR/A! 🎉</div>
-        <div class="foto-container">
+        <div class="foto-ganador-container">
           <img id="fotoGanador" src="assets/logo-totos.png" alt="Ganador" class="foto-ganador">
         </div>
         <div id="nombreGanador" class="ganador-nombre">@usuario</div>
         <p class="ganador-footer">Totos Rock Drugstore 🤘</p>
       </div>
-
-      <button id="btnReintentar" class="btn-rock hidden" onclick="iniciarSorteoAnimado()" style="margin-top: 15px;">
-        🔄 Sortear de nuevo
-      </button>
     </div>
   </div>
 

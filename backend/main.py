@@ -44,7 +44,7 @@ def obtener_participantes(data: SorteoRequest):
 
         usuarios_dict = {} 
         min_id = None
-        max_paginas = 40  # Permite traer hasta 2000 comentarios
+        max_paginas = 40  # Lee hasta 2000 comentarios
 
         for _ in range(max_paginas):
             params = {"id": media_id}
@@ -72,7 +72,7 @@ def obtener_participantes(data: SorteoRequest):
                         if u_clean not in usuarios_dict:
                             usuarios_dict[u_clean] = pic_url
 
-            # Puntero de paginación para la siguiente tanda de comentarios
+            # Obtener el puntero para la siguiente página
             min_id = data_json.get("next_min_id") or data_json.get("min_id")
             if not min_id:
                 break

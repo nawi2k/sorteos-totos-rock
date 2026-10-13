@@ -5,7 +5,7 @@ async function cargarParticipantes() {
   if (!url) return alert('Por favor ingresá un enlace válido de Instagram.');
 
   const btn = document.getElementById('btnCargar');
-  btn.innerText = '⌛ OBTENIENDO TODOS LOS COMENTARIOS...';
+  btn.innerText = '⌛ CARGANDO COMENTARIOS...';
   btn.disabled = true;
 
   try {
@@ -35,27 +35,25 @@ async function cargarParticipantes() {
 function abrirModalSorteo() {
   if (participantes.length === 0) return;
   document.getElementById('modalSorteo').classList.remove('hidden');
-  iniciarSorteoAnimado();
+  iniciarSorteo();
 }
 
 function cerrarModalSorteo() {
   document.getElementById('modalSorteo').classList.add('hidden');
 }
 
-function iniciarSorteoAnimado() {
+function iniciarSorteo() {
   const ruletaBox = document.getElementById('ruletaBox');
   const ruletaNombre = document.getElementById('ruletaNombre');
   const ganadorBox = document.getElementById('ganadorBox');
   const nombreGanador = document.getElementById('nombreGanador');
   const fotoGanador = document.getElementById('fotoGanador');
-  const btnReintentar = document.getElementById('btnReintentar');
 
   ruletaBox.classList.remove('hidden');
   ganadorBox.classList.add('hidden');
-  btnReintentar.classList.add('hidden');
 
   let giros = 0;
-  const totalGiros = 35; // ~3.5 segundos girando
+  const totalGiros = 35;
 
   const intervalo = setInterval(() => {
     const pAleatorio = participantes[Math.floor(Math.random() * participantes.length)];
@@ -75,7 +73,6 @@ function iniciarSorteoAnimado() {
         : 'assets/logo-totos.png';
 
       ganadorBox.classList.remove('hidden');
-      btnReintentar.classList.remove('hidden');
 
       if (typeof confetti === 'function') {
         confetti({ particleCount: 150, spread: 80, origin: { y: 0.5 } });
