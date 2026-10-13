@@ -209,6 +209,20 @@ input[type="text"]:focus {
   opacity: 0.8;
 }
 
+.foto-ganador-container {
+  margin: 15px 0 5px 0;
+}
+
+.foto-ganador {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  border: 3px solid #fff;
+  object-fit: cover;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+}
+
+
 .hidden { display: none; }
 
 @keyframes popIn {

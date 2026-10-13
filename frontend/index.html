@@ -4,17 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sorteos - Totos Rock</title>
-  
-  <!-- Ícono para la pestaña del navegador (Favicon) -->
   <link rel="icon" type="image/png" href="assets/logo-totos.png">
-  
   <link rel="stylesheet" href="styles.css">
-  <!-- Librería externa para el efecto de confeti -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 </head>
 <body>
 
-  <!-- Fondo rockero con textura y guitarras -->
   <div class="rock-bg"></div>
 
   <header class="header">
@@ -26,7 +21,6 @@
   </header>
 
   <main class="container">
-    <!-- Tarjeta de Entrada -->
     <section class="card glow-card">
       <label for="postUrl" class="input-label">Pegá el enlace de la publicación o reel:</label>
       <input type="text" id="postUrl" placeholder="https://www.instagram.com/p/...">
@@ -36,7 +30,6 @@
       </button>
     </section>
 
-    <!-- Secciones de Resultados -->
     <section id="resultadoSection" class="card glow-card hidden">
       <div class="counter-box">
         <span class="counter-label">Participantes Únicos</span>
@@ -47,13 +40,15 @@
         🔥 ¡REALIZAR SORTEO! 🔥
       </button>
 
-      <!-- Pantalla de Ruleta y Ganador -->
       <div id="ruletaBox" class="ruleta-box hidden">
         <div id="ruletaNombre" class="ruleta-nombre">@cargando...</div>
       </div>
 
       <div id="ganadorBox" class="ganador-box hidden">
         <div class="ganador-header">🎉 ¡GANADOR/A! 🎉</div>
+        <div class="foto-ganador-container">
+          <img id="fotoGanador" src="" alt="Foto Ganador" class="foto-ganador">
+        </div>
         <div id="nombreGanador" class="ganador-nombre">@usuario</div>
         <p class="ganador-footer">Totos Rock Drugstore 🤘</p>
       </div>

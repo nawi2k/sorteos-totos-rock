@@ -19,7 +19,6 @@ class SorteoRequest(BaseModel):
     post_url: str
 
 def shortcode_a_media_id(shortcode: str) -> int:
-    """Convierte el shortcode de Instagram (ej. DeXqzynCesU) a su ID numérico interno."""
     alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'
     media_id = 0
     for char in shortcode:
@@ -30,76 +29,69 @@ def shortcode_a_media_id(shortcode: str) -> int:
 def obtener_participantes(data: SorteoRequest):
     try:
         url = data.post_url.strip()
-        
-        # Extraer el shortcode de la publicación o reel
         match = re.search(r'/(?:p|reel|tv)/([^/?#&]+)', url)
         if not match:
-            raise HTTPException(
-                status_code=400, 
-                detail="El enlace ingresado no tiene un formato válido de Instagram."
-            )
+            raise HTTPException(status_code=400, detail="Enlace no válido.")
         
         shortcode = match.group(1)
         media_id = str(shortcode_a_media_id(shortcode))
 
         rapid_url = "https://instagram-api-fast-reliable-data-scraper.p.rapidapi.com/comments"
-        
         headers = {
             "x-rapidapi-key": RAPIDAPI_KEY,
             "x-rapidapi-host": "instagram-api-fast-reliable-data-scraper.p.rapidapi.com"
         }
-        
-        # Enviar el ID numérico que exige este endpoint
-        params = {"id": media_id}
 
-        response = requests.get(rapid_url, headers=headers, params=params, timeout=20)
-        
-        # Intento secundario pasando code_or_id_or_url por si acaso
-        if response.status_code != 200:
-            params_alt = {"code_or_id_or_url": shortcode}
-            response = requests.get(rapid_url, headers=headers, params=params_alt, timeout=20)
+        # Estructura: dict con clave de usuario y valor su foto de perfil
+        usuarios_dict = {} 
+        min_id = None
+        max_paginas = 25  # Limite para evitar bucles infinitos (hasta ~500 comentarios)
 
-        if response.status_code != 200:
-            msg_error = response.text
-            try:
-                err_json = response.json()
-                msg_error = err_json.get("error") or err_json.get("message") or response.text
-            except:
-                pass
-            raise HTTPException(
-                status_code=400, 
-                detail=f"Error en RapidAPI ({response.status_code}): {msg_error}"
-            )
+        for _ in range(max_paginas):
+            params = {"id": media_id}
+            if min_id:
+                params["min_id"] = min_id
 
-        data_json = response.json()
-        
-        # Extraer lista de comentarios
-        comments_list = data_json.get("comments", []) or data_json.get("data", []) or []
+            response = requests.get(rapid_url, headers=headers, params=params, timeout=15)
+            if response.status_code != 200:
+                break
 
-        usuarios_unicos = set()
-        for c in comments_list:
-            if isinstance(c, dict):
-                user_info = c.get("user", {})
-                username = user_info.get("username") or c.get("owner", {}).get("username")
-                if username:
-                    usuarios_unicos.add(username.lower())
+            data_json = response.json()
+            comments_list = data_json.get("comments", []) or []
 
-        if not usuarios_unicos:
-            raise HTTPException(
-                status_code=400, 
-                detail="No se encontraron comentarios en la publicación."
-            )
+            if not comments_list:
+                break
+
+            for c in comments_list:
+                if isinstance(c, dict):
+                    user_info = c.get("user", {})
+                    username = user_info.get("username") or c.get("owner", {}).get("username")
+                    pic_url = user_info.get("profile_pic_url") or c.get("owner", {}).get("profile_pic_url") or ""
+
+                    if username:
+                        u_clean = username.lower()
+                        if u_clean not in usuarios_dict:
+                            usuarios_dict[u_clean] = pic_url
+
+            # Actualizar el cursor para la siguiente página
+            min_id = data_json.get("next_min_id") or data_json.get("has_more_headload_comments")
+            if not min_id or not data_json.get("has_more_headload_comments", True):
+                break
+
+        if not usuarios_dict:
+            raise HTTPException(status_code=400, detail="No se encontraron comentarios.")
+
+        # Armar lista estructurada para el frontend
+        participantes_lista = [
+            {"username": u, "profile_pic": pic} 
+            for u, pic in sorted(usuarios_dict.items())
+        ]
 
         return {
             "exito": True,
-            "total_unicos": len(usuarios_unicos),
-            "participantes": sorted(list(usuarios_unicos))
+            "total_unicos": len(participantes_lista),
+            "participantes": participantes_lista
         }
 
-    except HTTPException as he:
-        raise he
     except Exception as e:
-        raise HTTPException(
-            status_code=400, 
-            detail=f"Error al procesar la publicación: {str(e)}"
-        )
+        raise HTTPException(status_code=400, detail=f"Error: {str(e)}")

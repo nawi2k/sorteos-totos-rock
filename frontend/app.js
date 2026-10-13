@@ -5,7 +5,7 @@ async function cargarParticipantes() {
   if (!url) return alert('Por favor ingresá un enlace válido de Instagram.');
 
   const btn = document.getElementById('btnCargar');
-  btn.innerText = '⌛ CARGANDO COMENTARIOS...';
+  btn.innerText = '⌛ OBTENIENDO TODOS LOS COMENTARIOS...';
   btn.disabled = true;
 
   try {
@@ -27,7 +27,7 @@ async function cargarParticipantes() {
       alert(data.detail || 'No se pudieron obtener los comentarios.');
     }
   } catch (err) {
-    alert('Error de conexión con el servidor. Por favor intentá de nuevo.');
+    alert('Error de conexión con el servidor.');
   } finally {
     btn.innerText = '🎸 CARGAR PARTICIPANTES';
     btn.disabled = false;
@@ -42,37 +42,36 @@ function realizarSorteo() {
   const ruletaNombre = document.getElementById('ruletaNombre');
   const ganadorBox = document.getElementById('ganadorBox');
   const nombreGanador = document.getElementById('nombreGanador');
+  const fotoGanador = document.getElementById('fotoGanador');
 
   btnSortear.disabled = true;
   ganadorBox.classList.add('hidden');
   ruletaBox.classList.remove('hidden');
 
   let giros = 0;
-  const totalGiros = 30; // Duración del giro de la ruleta
+  const totalGiros = 30;
 
   const intervalo = setInterval(() => {
-    const indiceAleatorio = Math.floor(Math.random() * participantes.length);
-    ruletaNombre.innerText = `@${participantes[indiceAleatorio]}`;
+    const pAleatorio = participantes[Math.floor(Math.random() * participantes.length)];
+    ruletaNombre.innerText = `@${pAleatorio.username}`;
     giros++;
 
     if (giros >= totalGiros) {
       clearInterval(intervalo);
       
-      // Ganador definitivo
       const ganadorFinal = participantes[Math.floor(Math.random() * participantes.length)];
       
       ruletaBox.classList.add('hidden');
-      nombreGanador.innerText = `@${ganadorFinal}`;
+      nombreGanador.innerText = `@${ganadorFinal.username}`;
+      
+      // Mostrar la foto de perfil o una imagen por defecto
+      fotoGanador.src = ganadorFinal.profile_pic || 'assets/logo-totos.png';
+      
       ganadorBox.classList.remove('hidden');
       btnSortear.disabled = false;
 
-      // Disparar confeti
       if (typeof confetti === 'function') {
-        confetti({
-          particleCount: 120,
-          spread: 70,
-          origin: { y: 0.6 }
-        });
+        confetti({ particleCount: 120, spread: 70, origin: { y: 0.6 } });
       }
     }
   }, 100);
