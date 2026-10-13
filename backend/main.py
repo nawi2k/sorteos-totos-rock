@@ -2,7 +2,6 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import requests
-from bs4 import BeautifulSoup
 import re
 
 app = FastAPI(title="API Sorteos Totos Rock")
@@ -14,6 +13,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Clave de RapidAPI
+RAPIDAPI_KEY = "ae9598b9c1msh1f0b6e5de81ab67p119a6bjsn2e84c4d02364"
+
 class SorteoRequest(BaseModel):
     post_url: str
 
@@ -22,7 +24,7 @@ def obtener_participantes(data: SorteoRequest):
     try:
         url = data.post_url.strip()
         
-        # Extraer el shortcode (código único de la publicación)
+        # Extraer el shortcode de la publicación
         match = re.search(r'/(?:p|reel|tv)/([^/?#&]+)', url)
         if not match:
             raise HTTPException(
@@ -30,45 +32,39 @@ def obtener_participantes(data: SorteoRequest):
                 detail="El enlace no tiene un formato válido de Instagram."
             )
         
-        shortcode = match.group(1)
+        code_or_id = match.group(1)
 
-        # Consultar la versión Embed pública de Instagram
-        embed_url = f"https://www.instagram.com/p/{shortcode}/embed/captioned/"
+        rapid_url = "https://instagram-api-fast-reliable-data-scraper.p.rapidapi.com/post_comments"
+        
         headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            "x-rapidapi-key": RAPIDAPI_KEY,
+            "x-rapidapi-host": "instagram-api-fast-reliable-data-scraper.p.rapidapi.com"
         }
         
-        response = requests.get(embed_url, headers=headers, timeout=10)
+        params = {"code_or_id_or_url": code_or_id}
+
+        response = requests.get(rapid_url, headers=headers, params=params, timeout=15)
         
         if response.status_code != 200:
             raise HTTPException(
                 status_code=400, 
-                detail="No se pudo acceder a la publicación. Asegurate de que la cuenta sea pública."
+                detail="Error al consultar los comentarios. Verificá que la publicación sea pública."
             )
 
-        soup = BeautifulSoup(response.text, 'html.parser')
-        
+        data_json = response.json()
+        comments_list = data_json.get("comments", [])
+
         usuarios_unicos = set()
-
-        # Extraer nombres de usuario de las etiquetas de comentarios en el Embed
-        for a_tag in soup.find_all('a', class_='CaptionUsername'):
-            username = a_tag.get_text(strip=True).lower()
+        for c in comments_list:
+            user_info = c.get("user", {})
+            username = user_info.get("username")
             if username:
-                usuarios_unicos.add(username)
-
-        # Búsqueda secundaria por patrón de usuarios de Instagram
-        for a_tag in soup.find_all('a'):
-            href = a_tag.get('href', '')
-            match_user = re.search(r'instagram\.com/([^/?#&]+)', href)
-            if match_user:
-                user = match_user.group(1).lower()
-                if user not in ['p', 'explore', 'reels', 'stories']:
-                    usuarios_unicos.add(user)
+                usuarios_unicos.add(username.lower())
 
         if not usuarios_unicos:
             raise HTTPException(
                 status_code=400, 
-                detail="No se detectaron usuarios o comentarios públicos en esta publicación."
+                detail="No se encontraron comentarios en esta publicación."
             )
 
         return {
