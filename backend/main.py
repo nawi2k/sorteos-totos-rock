@@ -6,6 +6,7 @@ import re
 
 app = FastAPI(title="API Sorteos Totos Rock")
 
+# Permitir solicitudes desde el frontend en Vercel
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -13,7 +14,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Clave de RapidAPI
+# API Key de RapidAPI
 RAPIDAPI_KEY = "ae9598b9c1msh1f0b6e5de81ab67p119a6bjsn2e84c4d02364"
 
 class SorteoRequest(BaseModel):
@@ -24,16 +25,17 @@ def obtener_participantes(data: SorteoRequest):
     try:
         url = data.post_url.strip()
         
-        # Extraer el shortcode de la publicación
+        # Extraer el shortcode o ID de la publicación (soporta /p/, /reel/, /tv/)
         match = re.search(r'/(?:p|reel|tv)/([^/?#&]+)', url)
         if not match:
             raise HTTPException(
                 status_code=400, 
-                detail="El enlace no tiene un formato válido de Instagram."
+                detail="El enlace ingresado no tiene un formato válido de Instagram."
             )
         
-        code_or_id = match.group(1)
+        shortcode = match.group(1)
 
+        # Usar la API de RapidAPI que saltea el inicio de sesión
         rapid_url = "https://instagram-api-fast-reliable-data-scraper.p.rapidapi.com/post_comments"
         
         headers = {
@@ -41,30 +43,35 @@ def obtener_participantes(data: SorteoRequest):
             "x-rapidapi-host": "instagram-api-fast-reliable-data-scraper.p.rapidapi.com"
         }
         
-        params = {"code_or_id_or_url": code_or_id}
+        params = {
+            "code_or_id_or_url": shortcode
+        }
 
-        response = requests.get(rapid_url, headers=headers, params=params, timeout=15)
+        response = requests.get(rapid_url, headers=headers, params=params, timeout=20)
         
         if response.status_code != 200:
             raise HTTPException(
                 status_code=400, 
-                detail="Error al consultar los comentarios. Verificá que la publicación sea pública."
+                detail="No se pudo consultar la publicación. Verifica que la cuenta sea pública."
             )
 
         data_json = response.json()
-        comments_list = data_json.get("comments", [])
+        
+        # Extraer comentarios y usuarios únicos
+        comments_list = data_json.get("comments", []) or data_json.get("data", [])
 
         usuarios_unicos = set()
         for c in comments_list:
-            user_info = c.get("user", {})
-            username = user_info.get("username")
+            # Obtener usuario según la estructura de la API
+            user_info = c.get("user", {}) if isinstance(c, dict) else {}
+            username = user_info.get("username") or c.get("owner", {}).get("username")
             if username:
                 usuarios_unicos.add(username.lower())
 
         if not usuarios_unicos:
             raise HTTPException(
                 status_code=400, 
-                detail="No se encontraron comentarios en esta publicación."
+                detail="No se encontraron comentarios en la publicación."
             )
 
         return {
