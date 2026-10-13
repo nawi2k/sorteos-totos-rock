@@ -18,12 +18,20 @@ RAPIDAPI_KEY = "ae9598b9c1msh1f0b6e5de81ab67p119a6bjsn2e84c4d02364"
 class SorteoRequest(BaseModel):
     post_url: str
 
+def shortcode_a_media_id(shortcode: str) -> int:
+    """Convierte el shortcode de Instagram (ej. DeXqzynCesU) a su ID numérico interno."""
+    alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'
+    media_id = 0
+    for char in shortcode:
+        media_id = (media_id * 64) + alphabet.index(char)
+    return media_id
+
 @app.post("/api/obtener-participantes")
 def obtener_participantes(data: SorteoRequest):
     try:
         url = data.post_url.strip()
         
-        # Extraer el shortcode limpio borrando parametros extra (?srtk=...)
+        # Extraer el shortcode de la publicación o reel
         match = re.search(r'/(?:p|reel|tv)/([^/?#&]+)', url)
         if not match:
             raise HTTPException(
@@ -32,6 +40,7 @@ def obtener_participantes(data: SorteoRequest):
             )
         
         shortcode = match.group(1)
+        media_id = str(shortcode_a_media_id(shortcode))
 
         rapid_url = "https://instagram-api-fast-reliable-data-scraper.p.rapidapi.com/comments"
         
@@ -40,15 +49,15 @@ def obtener_participantes(data: SorteoRequest):
             "x-rapidapi-host": "instagram-api-fast-reliable-data-scraper.p.rapidapi.com"
         }
         
-        # Cambiamos la clave del parámetro a 'id' o 'code_or_id_or_url'
-        params = {"id": shortcode}
+        # Enviar el ID numérico que exige este endpoint
+        params = {"id": media_id}
 
         response = requests.get(rapid_url, headers=headers, params=params, timeout=20)
         
-        # Si con 'id' da error, probamos enviando la URL limpia
+        # Intento secundario pasando code_or_id_or_url por si acaso
         if response.status_code != 200:
-            params = {"url": f"https://www.instagram.com/p/{shortcode}/"}
-            response = requests.get(rapid_url, headers=headers, params=params, timeout=20)
+            params_alt = {"code_or_id_or_url": shortcode}
+            response = requests.get(rapid_url, headers=headers, params=params_alt, timeout=20)
 
         if response.status_code != 200:
             msg_error = response.text
@@ -64,7 +73,7 @@ def obtener_participantes(data: SorteoRequest):
 
         data_json = response.json()
         
-        # Obtener lista de comentarios
+        # Extraer lista de comentarios
         comments_list = data_json.get("comments", []) or data_json.get("data", []) or []
 
         usuarios_unicos = set()
