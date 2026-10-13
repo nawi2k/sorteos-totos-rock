@@ -5,7 +5,7 @@ async function cargarParticipantes() {
   if (!url) return alert('Por favor ingresá un enlace válido de Instagram.');
 
   const btn = document.getElementById('btnCargar');
-  btn.innerText = '⌛ OBTENIENDO COMENTARIOS...';
+  btn.innerText = '⌛ OBTENIENDO TODOS LOS COMENTARIOS...';
   btn.disabled = true;
 
   try {
@@ -21,6 +21,8 @@ async function cargarParticipantes() {
       participantes = data.participantes;
       document.getElementById('totalCount').innerText = data.total_unicos;
       document.getElementById('resultadoSection').classList.remove('hidden');
+      document.getElementById('ganadorBox').classList.add('hidden');
+      document.getElementById('ruletaBox').classList.add('hidden');
     } else {
       alert(data.detail || 'No se pudieron obtener los comentarios.');
     }
@@ -32,30 +34,22 @@ async function cargarParticipantes() {
   }
 }
 
-function abrirSorteoModal() {
+function realizarSorteo() {
   if (participantes.length === 0) return;
-  document.getElementById('sorteoModal').classList.remove('hidden');
-  iniciarAnimacionSorteo();
-}
 
-function cerrarSorteoModal() {
-  document.getElementById('sorteoModal').classList.add('hidden');
-}
-
-function iniciarAnimacionSorteo() {
+  const btnSortear = document.getElementById('btnSortear');
   const ruletaBox = document.getElementById('ruletaBox');
   const ruletaNombre = document.getElementById('ruletaNombre');
   const ganadorBox = document.getElementById('ganadorBox');
   const nombreGanador = document.getElementById('nombreGanador');
   const fotoGanador = document.getElementById('fotoGanador');
-  const btnRepetir = document.getElementById('btnRepetir');
 
-  ruletaBox.classList.remove('hidden');
+  btnSortear.disabled = true;
   ganadorBox.classList.add('hidden');
-  btnRepetir.classList.add('hidden');
+  ruletaBox.classList.remove('hidden');
 
   let giros = 0;
-  const totalGiros = 35; // Tiempo de ruleta (~3.5 seg)
+  const totalGiros = 30;
 
   const intervalo = setInterval(() => {
     const pAleatorio = participantes[Math.floor(Math.random() * participantes.length)];
@@ -70,16 +64,14 @@ function iniciarAnimacionSorteo() {
       ruletaBox.classList.add('hidden');
       nombreGanador.innerText = `@${ganadorFinal.username}`;
       
-      // Manejo de la foto de perfil
-      fotoGanador.src = (ganadorFinal.profile_pic && ganadorFinal.profile_pic !== '') 
-        ? ganadorFinal.profile_pic 
-        : 'assets/logo-totos.png';
+      // Mostrar la foto de perfil o una imagen por defecto
+      fotoGanador.src = ganadorFinal.profile_pic || 'assets/logo-totos.png';
       
       ganadorBox.classList.remove('hidden');
-      btnRepetir.classList.remove('hidden');
+      btnSortear.disabled = false;
 
       if (typeof confetti === 'function') {
-        confetti({ particleCount: 150, spread: 80, origin: { y: 0.5 } });
+        confetti({ particleCount: 120, spread: 70, origin: { y: 0.6 } });
       }
     }
   }, 100);
