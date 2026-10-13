@@ -31,7 +31,7 @@ def obtener_participantes(data: SorteoRequest):
         url = data.post_url.strip()
         match = re.search(r'/(?:p|reel|tv)/([^/?#&]+)', url)
         if not match:
-            raise HTTPException(status_code=400, detail="Enlace no válido.")
+            raise HTTPException(status_code=400, detail="Enlace de Instagram no válido.")
         
         shortcode = match.group(1)
         media_id = str(shortcode_a_media_id(shortcode))
@@ -42,10 +42,9 @@ def obtener_participantes(data: SorteoRequest):
             "x-rapidapi-host": "instagram-api-fast-reliable-data-scraper.p.rapidapi.com"
         }
 
-        # Estructura: dict con clave de usuario y valor su foto de perfil
         usuarios_dict = {} 
         min_id = None
-        max_paginas = 25  # Limite para evitar bucles infinitos (hasta ~500 comentarios)
+        max_paginas = 40  # Permite traer hasta 2000 comentarios
 
         for _ in range(max_paginas):
             params = {"id": media_id}
@@ -69,19 +68,18 @@ def obtener_participantes(data: SorteoRequest):
                     pic_url = user_info.get("profile_pic_url") or c.get("owner", {}).get("profile_pic_url") or ""
 
                     if username:
-                        u_clean = username.lower()
+                        u_clean = username.lower().strip()
                         if u_clean not in usuarios_dict:
                             usuarios_dict[u_clean] = pic_url
 
-            # Actualizar el cursor para la siguiente página
-            min_id = data_json.get("next_min_id") or data_json.get("has_more_headload_comments")
-            if not min_id or not data_json.get("has_more_headload_comments", True):
+            # Puntero de paginación para la siguiente tanda de comentarios
+            min_id = data_json.get("next_min_id") or data_json.get("min_id")
+            if not min_id:
                 break
 
         if not usuarios_dict:
             raise HTTPException(status_code=400, detail="No se encontraron comentarios.")
 
-        # Armar lista estructurada para el frontend
         participantes_lista = [
             {"username": u, "profile_pic": pic} 
             for u, pic in sorted(usuarios_dict.items())
@@ -94,4 +92,4 @@ def obtener_participantes(data: SorteoRequest):
         }
 
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Error: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Error al procesar la publicación: {str(e)}")

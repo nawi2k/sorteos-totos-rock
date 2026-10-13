@@ -21,8 +21,6 @@ async function cargarParticipantes() {
       participantes = data.participantes;
       document.getElementById('totalCount').innerText = data.total_unicos;
       document.getElementById('resultadoSection').classList.remove('hidden');
-      document.getElementById('ganadorBox').classList.add('hidden');
-      document.getElementById('ruletaBox').classList.add('hidden');
     } else {
       alert(data.detail || 'No se pudieron obtener los comentarios.');
     }
@@ -34,22 +32,30 @@ async function cargarParticipantes() {
   }
 }
 
-function realizarSorteo() {
+function abrirModalSorteo() {
   if (participantes.length === 0) return;
+  document.getElementById('modalSorteo').classList.remove('hidden');
+  iniciarSorteoAnimado();
+}
 
-  const btnSortear = document.getElementById('btnSortear');
+function cerrarModalSorteo() {
+  document.getElementById('modalSorteo').classList.add('hidden');
+}
+
+function iniciarSorteoAnimado() {
   const ruletaBox = document.getElementById('ruletaBox');
   const ruletaNombre = document.getElementById('ruletaNombre');
   const ganadorBox = document.getElementById('ganadorBox');
   const nombreGanador = document.getElementById('nombreGanador');
   const fotoGanador = document.getElementById('fotoGanador');
+  const btnReintentar = document.getElementById('btnReintentar');
 
-  btnSortear.disabled = true;
-  ganadorBox.classList.add('hidden');
   ruletaBox.classList.remove('hidden');
+  ganadorBox.classList.add('hidden');
+  btnReintentar.classList.add('hidden');
 
   let giros = 0;
-  const totalGiros = 30;
+  const totalGiros = 35; // ~3.5 segundos girando
 
   const intervalo = setInterval(() => {
     const pAleatorio = participantes[Math.floor(Math.random() * participantes.length)];
@@ -64,14 +70,15 @@ function realizarSorteo() {
       ruletaBox.classList.add('hidden');
       nombreGanador.innerText = `@${ganadorFinal.username}`;
       
-      // Mostrar la foto de perfil o una imagen por defecto
-      fotoGanador.src = ganadorFinal.profile_pic || 'assets/logo-totos.png';
-      
+      fotoGanador.src = (ganadorFinal.profile_pic && ganadorFinal.profile_pic !== "")
+        ? ganadorFinal.profile_pic 
+        : 'assets/logo-totos.png';
+
       ganadorBox.classList.remove('hidden');
-      btnSortear.disabled = false;
+      btnReintentar.classList.remove('hidden');
 
       if (typeof confetti === 'function') {
-        confetti({ particleCount: 120, spread: 70, origin: { y: 0.6 } });
+        confetti({ particleCount: 150, spread: 80, origin: { y: 0.5 } });
       }
     }
   }, 100);

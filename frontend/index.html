@@ -36,24 +36,43 @@
         <span id="totalCount" class="counter-number">0</span>
       </div>
 
-      <button id="btnSortear" class="btn-rock btn-gold" onclick="realizarSorteo()">
+      <button id="btnSortear" class="btn-rock btn-gold" onclick="abrirModalSorteo()">
         🔥 ¡REALIZAR SORTEO! 🔥
       </button>
+    </section>
+  </main>
 
-      <div id="ruletaBox" class="ruleta-box hidden">
+  <!-- CUADRO FLOTANTE / POP-UP DEL SORTEO -->
+  <div id="modalSorteo" class="modal-overlay hidden">
+    <div class="modal-box glow-card">
+      <button class="modal-close" onclick="cerrarModalSorteo()">✕</button>
+      
+      <div class="modal-header">
+        <img src="assets/logo-totos.png" class="modal-logo" alt="Totos">
+        <h2>TOTOS ROCK</h2>
+      </div>
+
+      <!-- Estado Girando -->
+      <div id="ruletaBox" class="ruleta-box">
+        <p class="ruleta-texto">SORTEANDO...</p>
         <div id="ruletaNombre" class="ruleta-nombre">@cargando...</div>
       </div>
 
+      <!-- Estado Ganador -->
       <div id="ganadorBox" class="ganador-box hidden">
         <div class="ganador-header">🎉 ¡GANADOR/A! 🎉</div>
-        <div class="foto-ganador-container">
-          <img id="fotoGanador" src="" alt="Foto Ganador" class="foto-ganador">
+        <div class="foto-container">
+          <img id="fotoGanador" src="assets/logo-totos.png" alt="Ganador" class="foto-ganador">
         </div>
         <div id="nombreGanador" class="ganador-nombre">@usuario</div>
         <p class="ganador-footer">Totos Rock Drugstore 🤘</p>
       </div>
-    </section>
-  </main>
+
+      <button id="btnReintentar" class="btn-rock hidden" onclick="iniciarSorteoAnimado()" style="margin-top: 15px;">
+        🔄 Sortear de nuevo
+      </button>
+    </div>
+  </div>
 
   <script src="app.js"></script>
 </body>
