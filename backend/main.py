@@ -23,7 +23,7 @@ def obtener_participantes(data: SorteoRequest):
     try:
         url = data.post_url.strip()
         
-        # Extraer el shortcode limpio borrando todo lo que haya antes y después
+        # Extraer el shortcode limpio borrando parametros extra (?srtk=...)
         match = re.search(r'/(?:p|reel|tv)/([^/?#&]+)', url)
         if not match:
             raise HTTPException(
@@ -33,7 +33,6 @@ def obtener_participantes(data: SorteoRequest):
         
         shortcode = match.group(1)
 
-        # Endpoint correcto según la API de RapidAPI
         rapid_url = "https://instagram-api-fast-reliable-data-scraper.p.rapidapi.com/comments"
         
         headers = {
@@ -41,15 +40,21 @@ def obtener_participantes(data: SorteoRequest):
             "x-rapidapi-host": "instagram-api-fast-reliable-data-scraper.p.rapidapi.com"
         }
         
-        params = {"code_or_id_or_url": shortcode}
+        # Cambiamos la clave del parámetro a 'id' o 'code_or_id_or_url'
+        params = {"id": shortcode}
 
         response = requests.get(rapid_url, headers=headers, params=params, timeout=20)
         
+        # Si con 'id' da error, probamos enviando la URL limpia
+        if response.status_code != 200:
+            params = {"url": f"https://www.instagram.com/p/{shortcode}/"}
+            response = requests.get(rapid_url, headers=headers, params=params, timeout=20)
+
         if response.status_code != 200:
             msg_error = response.text
             try:
                 err_json = response.json()
-                msg_error = err_json.get("message") or err_json.get("detail") or response.text
+                msg_error = err_json.get("error") or err_json.get("message") or response.text
             except:
                 pass
             raise HTTPException(
@@ -60,7 +65,7 @@ def obtener_participantes(data: SorteoRequest):
         data_json = response.json()
         
         # Obtener lista de comentarios
-        comments_list = data_json.get("comments", []) or data_json.get("data", [])
+        comments_list = data_json.get("comments", []) or data_json.get("data", []) or []
 
         usuarios_unicos = set()
         for c in comments_list:
