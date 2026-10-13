@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sorteos - Totos Rock</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <header class="header">
+    <img src="assets/logo-totos.png" alt="Totos Rock Logo" class="logo">
+    <h1>Totos Rock - Drugstore</h1>
+    <p class="subtitle">Creador de Sorteos para Instagram</p>
+  </header>
+
+  <main class="container">
+    <section class="card">
+      <label for="postUrl">Pegá el enlace de la publicación pública:</label>
+      <input type="text" id="postUrl" placeholder="https://www.instagram.com/p/...">
+      <button id="btnCargar" onclick="cargarParticipantes()">Cargar Participantes</button>
+    </section>
+
+    <section id="resultadoSection" class="card hidden">
+      <h2>Participantes Únicos: <span id="totalCount">0</span></h2>
+      <button id="btnSortear" class="btn-primary" onclick="realizarSorteo()">¡REALIZAR SORTEO!</button>
+      <div id="ganadorBox" class="ganador-box hidden">
+        <h3>🎉 ¡El ganador es! 🎉</h3>
+        <p id="nombreGanador" class="ganador-nombre"></p>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
