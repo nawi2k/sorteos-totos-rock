@@ -42,38 +42,35 @@ def obtener_participantes(data: SorteoRequest):
         }
 
         usuarios_dict = {}
-        total_comentarios_real = 0
-
-        # Petición a RapidAPI
-        rapid_url = "https://instagram-api-fast-reliable-data-scraper.p.rapidapi.com/comments"
-        params = {"id": media_id, "count": "100"}
-
-        response = requests.get(rapid_url, headers=headers, params=params, timeout=20)
         
-        if response.status_code == 200:
-            data_json = response.json()
-            
-            # Intentar obtener el contador oficial de comentarios que reporta Instagram
-            total_comentarios_real = (
-                data_json.get("comment_count") or 
-                data_json.get("total_comments") or 
-                data_json.get("count") or 
-                0
-            )
+        # Probamos primero el endpoint de comentarios extendidos pasándole el link completo y el shortcode
+        urls_a_probar = [
+            ("https://instagram-api-fast-reliable-data-scraper.p.rapidapi.com/comments", {"id": media_id, "count": "500"}),
+            ("https://instagram-api-fast-reliable-data-scraper.p.rapidapi.com/comments", {"code_or_id_or_url": f"https://www.instagram.com/p/{shortcode}/"}),
+        ]
 
-            comments_list = data_json.get("comments") or data_json.get("data") or data_json.get("items") or []
-            
-            if isinstance(comments_list, list):
-                for c in comments_list:
-                    if isinstance(c, dict):
-                        user_info = c.get("user") or c.get("owner") or {}
-                        username = user_info.get("username")
-                        pic_url = user_info.get("profile_pic_url") or ""
+        for rapid_url, params in urls_a_probar:
+            response = requests.get(rapid_url, headers=headers, params=params, timeout=20)
+            if response.status_code == 200:
+                data_json = response.json()
+                
+                # Extraer comentarios
+                comments_list = data_json.get("comments") or data_json.get("data") or data_json.get("items") or []
+                if isinstance(comments_list, list) and len(comments_list) > 0:
+                    for c in comments_list:
+                        if isinstance(c, dict):
+                            user_info = c.get("user") or c.get("owner") or {}
+                            username = user_info.get("username")
+                            pic_url = user_info.get("profile_pic_url") or ""
 
-                        if username:
-                            u_clean = username.lower().strip()
-                            if u_clean not in usuarios_dict:
-                                usuarios_dict[u_clean] = pic_url
+                            if username:
+                                u_clean = username.lower().strip()
+                                if u_clean not in usuarios_dict:
+                                    usuarios_dict[u_clean] = pic_url
+                    
+                    # Si ya logramos extraer más de los 12-13 iniciales, cortamos la búsqueda
+                    if len(usuarios_dict) > 15:
+                        break
 
         if not usuarios_dict:
             raise HTTPException(status_code=400, detail="No se pudieron obtener los comentarios de la publicación.")
@@ -83,12 +80,9 @@ def obtener_participantes(data: SorteoRequest):
             for u, pic in sorted(usuarios_dict.items())
         ]
 
-        # Si la API reportó la cantidad total oficial, la usamos; si no, ponemos la cantidad obtenida
-        total_oficial = total_comentarios_real if total_comentarios_real > len(participantes_lista) else len(participantes_lista)
-
         return {
             "exito": True,
-            "total_unicos": total_oficial,
+            "total_unicos": len(participantes_lista),
             "participantes": participantes_lista
         }
 
