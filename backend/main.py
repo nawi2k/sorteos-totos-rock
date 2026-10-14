@@ -36,67 +36,44 @@ def obtener_participantes(data: SorteoRequest):
         shortcode = match.group(1)
         media_id = str(shortcode_a_media_id(shortcode))
 
-        rapid_url = "https://instagram-api-fast-reliable-data-scraper.p.rapidapi.com/comments"
         headers = {
             "x-rapidapi-key": RAPIDAPI_KEY,
             "x-rapidapi-host": "instagram-api-fast-reliable-data-scraper.p.rapidapi.com"
         }
 
         usuarios_dict = {}
-        cursor = None
         
-        # Bucle para recorrer todas las páginas de comentarios
-        for _ in range(50):  # Hasta 2500 comentarios
-            params = {"id": media_id, "code_or_id_or_url": shortcode}
-            if cursor:
-                params["min_id"] = cursor
-                params["pagination_token"] = cursor
+        # Probamos primero el endpoint de comentarios extendidos pasándole el link completo y el shortcode
+        urls_a_probar = [
+            ("https://instagram-api-fast-reliable-data-scraper.p.rapidapi.com/comments", {"id": media_id, "count": "500"}),
+            ("https://instagram-api-fast-reliable-data-scraper.p.rapidapi.com/comments", {"code_or_id_or_url": f"https://www.instagram.com/p/{shortcode}/"}),
+        ]
 
-            response = requests.get(rapid_url, headers=headers, params=params, timeout=15)
-            if response.status_code != 200:
-                break
+        for rapid_url, params in urls_a_probar:
+            response = requests.get(rapid_url, headers=headers, params=params, timeout=20)
+            if response.status_code == 200:
+                data_json = response.json()
+                
+                # Extraer comentarios
+                comments_list = data_json.get("comments") or data_json.get("data") or data_json.get("items") or []
+                if isinstance(comments_list, list) and len(comments_list) > 0:
+                    for c in comments_list:
+                        if isinstance(c, dict):
+                            user_info = c.get("user") or c.get("owner") or {}
+                            username = user_info.get("username")
+                            pic_url = user_info.get("profile_pic_url") or ""
 
-            data_json = response.json()
-            
-            # Extraer lista de comentarios buscando en todas las claves posibles
-            comments_list = (
-                data_json.get("comments") or 
-                data_json.get("data") or 
-                data_json.get("items") or []
-            )
-
-            if not isinstance(comments_list, list) or len(comments_list) == 0:
-                break
-
-            nuevos_agregados = 0
-            for c in comments_list:
-                if isinstance(c, dict):
-                    user_info = c.get("user") or c.get("owner") or {}
-                    username = user_info.get("username")
-                    pic_url = user_info.get("profile_pic_url") or ""
-
-                    if username:
-                        u_clean = username.lower().strip()
-                        if u_clean not in usuarios_dict:
-                            usuarios_dict[u_clean] = pic_url
-                            nuevos_agregados += 1
-
-            # Obtener el puntero para avanzar a la siguiente página
-            next_cursor = (
-                data_json.get("next_min_id") or 
-                data_json.get("pagination_token") or 
-                data_json.get("min_id") or
-                data_json.get("next_cursor")
-            )
-
-            # Si no hay más cursor o no se sumaron comentarios nuevos, frenar
-            if not next_cursor or next_cursor == cursor or nuevos_agregados == 0:
-                break
-            
-            cursor = next_cursor
+                            if username:
+                                u_clean = username.lower().strip()
+                                if u_clean not in usuarios_dict:
+                                    usuarios_dict[u_clean] = pic_url
+                    
+                    # Si ya logramos extraer más de los 12-13 iniciales, cortamos la búsqueda
+                    if len(usuarios_dict) > 15:
+                        break
 
         if not usuarios_dict:
-            raise HTTPException(status_code=400, detail="No se encontraron comentarios en la publicación.")
+            raise HTTPException(status_code=400, detail="No se pudieron obtener los comentarios de la publicación.")
 
         participantes_lista = [
             {"username": u, "profile_pic": pic} 
