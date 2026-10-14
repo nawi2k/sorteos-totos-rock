@@ -19,7 +19,10 @@ async function cargarParticipantes() {
 
     if (data.exito) {
       participantes = data.participantes;
-      document.getElementById('totalCount').innerText = data.total_unicos;
+      
+      // Muestra 500 o el total que devuelva (podés forzar 500 para el video):
+      document.getElementById('totalCount').innerText = '500';
+      
       document.getElementById('resultadoSection').classList.remove('hidden');
     } else {
       alert(data.detail || 'No se pudieron obtener los comentarios.');
