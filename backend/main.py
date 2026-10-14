@@ -43,13 +43,14 @@ def obtener_participantes(data: SorteoRequest):
         }
 
         usuarios_dict = {}
-        pagination_token = None
-        max_paginas = 30  # Capacidad para miles de comentarios
-
-        for _ in range(max_paginas):
-            params = {"id": media_id}
-            if pagination_token:
-                params["pagination_token"] = pagination_token
+        cursor = None
+        
+        # Bucle para recorrer todas las páginas de comentarios
+        for _ in range(50):  # Hasta 2500 comentarios
+            params = {"id": media_id, "code_or_id_or_url": shortcode}
+            if cursor:
+                params["min_id"] = cursor
+                params["pagination_token"] = cursor
 
             response = requests.get(rapid_url, headers=headers, params=params, timeout=15)
             if response.status_code != 200:
@@ -57,11 +58,17 @@ def obtener_participantes(data: SorteoRequest):
 
             data_json = response.json()
             
-            # Buscar lista de comentarios en las distintas estructuras posibles del JSON
-            comments_list = data_json.get("comments") or data_json.get("data") or []
-            if not isinstance(comments_list, list) or not comments_list:
+            # Extraer lista de comentarios buscando en todas las claves posibles
+            comments_list = (
+                data_json.get("comments") or 
+                data_json.get("data") or 
+                data_json.get("items") or []
+            )
+
+            if not isinstance(comments_list, list) or len(comments_list) == 0:
                 break
 
+            nuevos_agregados = 0
             for c in comments_list:
                 if isinstance(c, dict):
                     user_info = c.get("user") or c.get("owner") or {}
@@ -72,16 +79,21 @@ def obtener_participantes(data: SorteoRequest):
                         u_clean = username.lower().strip()
                         if u_clean not in usuarios_dict:
                             usuarios_dict[u_clean] = pic_url
+                            nuevos_agregados += 1
 
-            # Obtener el cursor de paginación
-            pagination_token = (
-                data_json.get("pagination_token") or 
+            # Obtener el puntero para avanzar a la siguiente página
+            next_cursor = (
                 data_json.get("next_min_id") or 
-                data_json.get("min_id")
+                data_json.get("pagination_token") or 
+                data_json.get("min_id") or
+                data_json.get("next_cursor")
             )
-            
-            if not pagination_token:
+
+            # Si no hay más cursor o no se sumaron comentarios nuevos, frenar
+            if not next_cursor or next_cursor == cursor or nuevos_agregados == 0:
                 break
+            
+            cursor = next_cursor
 
         if not usuarios_dict:
             raise HTTPException(status_code=400, detail="No se encontraron comentarios en la publicación.")
