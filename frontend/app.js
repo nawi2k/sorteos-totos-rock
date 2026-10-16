@@ -20,8 +20,8 @@ async function cargarParticipantes() {
     if (data.exito) {
       participantes = data.participantes;
       
-      // Muestra 500 o el total que devuelva (podés forzar 500 para el video):
-      document.getElementById('totalCount').innerText = '500';
+      // Fijado en 645 para que coincida exactamente con la publicación real
+      document.getElementById('totalCount').innerText = '645';
       
       document.getElementById('resultadoSection').classList.remove('hidden');
     } else {
